@@ -61,9 +61,11 @@ import matplotlib.pyplot as plt
 manifestfile = sys.argv[1]
 summaryprefix = sys.argv[2]
 
-files = []
+labels, files = [], []
 for line in open(manifestfile):
-    files.append(line.rstrip())
+    line = line.rstrip().split()
+    files.append(line[1])
+    labels.append(line[0])
 
 isoclasses = ['FSM', 'ISM', 'NIC', 'NNC', 'Genic_Genomic', 'Genic_Intron', 'Antisense', 'Fusion','Intergenic']
 
@@ -95,42 +97,54 @@ for file in files:
     # break
     print(round(srtm/tot, 3), round(sntm/tot, 3), round((srtm+sntm)/tot, 3))
     outline = [file.split('_classification.txt')[0],
-               round(srtm/tot, 3), round(sntm/tot, 3),
-               round(cagesup/tot, 3), round(polyasup/tot, 3)] \
+               round(srtm/tot*100), round(sntm/tot*100),
+               round(cagesup/tot*100), round(polyasup/tot*100)] \
               + [isoclasscounts[x] for x in isoclasses] + [tot]
     alllines.append(outline)
 
 
 out = open(summaryprefix + '.tsv', 'w')
-out.write('\t'.join(['filename', 'fracSRTM', 'fracSNTM', "5'endsupport", "3'endsupport"] + isoclasses + ['total_isoforms']) + '\n')
+out.write('\t'.join(['filename', '%SRTM', '%SNTM', "%5'endsupport", "%3'endsupport"] + ['#' + x for x in isoclasses] + ['#total_isoforms']) + '\n')
 for outline in alllines:
     out.write('\t'.join([str(x) for x in outline]) + '\n')
 out.close()
 
 
-fig, axs = plt.subplots(3)
-fig.set_size_inches((6,10))
+axs = []
+fig = plt.figure(figsize=(6,6))
+# axs.append(fig.add_axes((.15, 0.75, 0.6, 0.3)))
+# axs.append(fig.add_axes((.15, 0.425, 0.6, 0.3)))
+# axs.append(fig.add_axes((.15, .1, 0.6, 0.3)))
+
+axs.append(fig.add_axes((.15, 0.75, 0.5, 0.2)))
+axs.append(fig.add_axes((.15, 0.525, 0.5, 0.2)))
+axs.append(fig.add_axes((.15, .3, 0.5, 0.2)))
+
+# fig, axs = plt.subplots(3)
+# fig.set_size_inches((6,10))
 xvals = list(range(len(alllines)))
 
 allsrtm, allsntm = [x[1] for x in alllines], [x[2] for x in alllines]
 axs[0].bar(xvals, allsrtm,  label="SRTM")
 axs[0].bar(xvals, allsntm, bottom=allsrtm,  label="SNTM")
-axs[0].set_ylim((0,1))
+axs[0].set_ylim((0,100))
 axs[0].legend()
+axs[0].set_ylabel('% of isoforms')
 axs[0].set_xticks(xvals, ['' for x in alllines])
-box = axs[0].get_position()
-axs[0].set_position([box.x0 , box.y0+(box.height*(1/3)), box.width*0.8, box.height * (2/3)])
+# box = axs[0].get_position()
+# axs[0].set_position([box.x0 , box.y0+(box.height*(1/3)), box.width*0.8, box.height * (2/3)])
 axs[0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
 
 allcage, allpolya = [x[3] for x in alllines], [x[4] for x in alllines]
 axs[1].bar([x-0.2 for x in xvals], allcage, width=0.3, label="5'endsupport")
 axs[1].bar([x+0.2 for x in xvals], allpolya, width=0.3, label="3'endsupport")
-axs[1].set_ylim((0,1))
+axs[1].set_ylim((0,100))
+axs[1].set_ylabel('% of isoforms')
 axs[1].legend()
 axs[1].set_xticks(xvals, ['' for x in alllines])
-box = axs[1].get_position()
-axs[1].set_position([box.x0 , box.y0+(box.height*(2/3)), box.width*0.8, box.height * (2/3)])
+# box = axs[1].get_position()
+# axs[1].set_position([box.x0 , box.y0+(box.height*(2/3)), box.width*0.8, box.height * (2/3)])
 axs[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
 bottom = [0 for x in range(len(alllines))]
@@ -139,9 +153,12 @@ for i in range(len(isoclasses)):
     axs[2].bar(xvals, vals, bottom=bottom, label=isoclasses[i])
     bottom = [bottom[x] + vals[x] for x in range(len(vals))]
 axs[2].legend()
-axs[2].set_xticks(xvals, [x[0].split('/')[-1] for x in alllines], rotation=90, ha='center')
-box = axs[2].get_position()
-axs[2].set_position([box.x0 , box.y0+(box.height*(1)), box.width*0.8, box.height*(2/3)])
+# axs[2].set_xticks(xvals, [x[0].split('/')[-1] for x in alllines], rotation=90, ha='center')
+axs[2].set_xticks(xvals, labels, rotation=90, ha='center')
+axs[2].set_ylabel('# of isoforms')
+
+# box = axs[2].get_position()
+# axs[2].set_position([box.x0 , box.y0+(box.height*(1)), box.width*0.8, box.height*(2/3)])
 axs[2].legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
 plt.savefig(summaryprefix + '.png', dpi=600)
